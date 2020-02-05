@@ -1,8 +1,8 @@
 from dbca_utils.utils import env
 import dj_database_url
 import os
+from dotenv import load_dotenv
 from pathlib import Path
-
 # Project paths
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = str(Path(__file__).resolve().parents[1])
@@ -29,6 +29,12 @@ DFES_URL = env('DFES_URL', False)
 DFES_USER = env('DFES_USER', False)
 DFES_PASS = env('DFES_PASS', False)
 DFES_OUT_OF_ORDER_BUFFER = int(env('DFES_OUT_OF_ORDER_BUFFER') or 300)
+#fleetcare
+FCAREDATABASE = env('FCAREDATABASE', False)
+FCAREUSER = env('FCAREUSER', False)
+FCAREPASSWORD = env('FCAREPASSWORD', False)
+FCAREHOST = env('FCAREHOST', False)
+FCAREPORT = env('FCAREPORT', False)
 # Add scary warning on device edit page for prod
 PROD_SCARY_WARNING = env('PROD_SCARY_WARNING', False)
 DEVICE_HTTP_CACHE_TIMEOUT = env('DEVICE_HTTP_CACHE_TIMEOUT', 60)

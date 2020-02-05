@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 import dotenv
+#from dotenv import Dotenv
+#dotenv = Dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+#os.environ.update(dotenv)
+#from dotenv import Dotenv
+#dotenv = Dotenv('./.env')
 import os
 import sys
 
@@ -7,6 +12,7 @@ import sys
 dot_env = os.path.join(os.getcwd(), '.env')
 if os.path.exists(dot_env):
     dotenv.read_dotenv()
+#    dotenv = Dotenv('./.env')
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "resource_tracking.settings")

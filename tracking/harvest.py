@@ -4,6 +4,14 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.encoding import force_text
 
+
+
+#from lazyapi import app
+#import os
+#from peewee import PostgresqlDatabase, Model, CharField, DateTimeField, TextField
+#from collections import defaultdict
+
+
 import csv
 import time
 import pytz
@@ -267,13 +275,53 @@ def save_tracplus():
         if new:
             updated += 1
     LOGGER.info("Updated {} of {} scanned TracPLUS devices".format(updated, len(latest)))
+   
+def harvest_tracking_fleetcare():
+    #from dotenv import load_dotenv
+    #load_dotenv()
+    from lazyapi import app
+    import os
+    from peewee import PostgresqlDatabase, Model, CharField, DateTimeField, TextField
+    from collections import defaultdict
+    db = PostgresqlDatabase(os.environ.get("FCAREDATABASE"),user=os.environ.get("FCAREUSER"), password=os.environ.get("FCAREPASSWORD"),host=os.environ.get("FCAREHOST"), port=os.environ.get("FCAREPORT"))
+
+    class LogEntry(Model):
+        name = CharField()
+        created = DateTimeField()
+        text = TextField()
+        print('1')
+        class Meta:
+            indexes = (
+             (('name', 'created'), True),
+        )
+        database = db
+    h=0
+    db.connect()
+    print('3')
+    for p in LogEntry.select():
+        h=h+1
+        if h>350 and h<352:
+           # print(p.name, p.created, p.text)
+           # print(h)
+           # items = p.text
+           
+           # if item['format'] == 'dynamics':
+           items = p.text
+           elements=(items.splitlines( ))
+           for element in elements:
+               print(element)
 
 
 def save_dfes_avl():
     LOGGER.info('Begin to harvest the data from dfes, out of order buffer is {} seconds'.format(settings.DFES_OUT_OF_ORDER_BUFFER))
     latest = requests.get(url=settings.DFES_URL, auth=requests.auth.HTTPBasicAuth(settings.DFES_USER, settings.DFES_PASS)).json()['features']
     LOGGER.info('End to harvest the data from dfes')
-
+    #latest1 = requests.get(url=settings.Fleet_URL, auth=requests.auth.HTTPBasicAuth(settings.Fleet_USER, settings.Fleet_PASS)).json()['login']
+    """
+    for row1 in latest1:
+        if row1['type'] == 'login':
+            print(row1["properties"])
+    """
     latest_seen = None
     try:
         latest_seen = Device.objects.filter(source_device_type='dfes', seen__lt=timezone.now()).latest('seen').seen

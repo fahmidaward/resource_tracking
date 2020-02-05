@@ -2,7 +2,8 @@
 WSGI config for resource_tracking project.
 It exposes the WSGI callable as a module-level variable named ``application``.
 """
-import dotenv
+#import dotenv
+#from dotenv import read_dotenv
 from django.core.wsgi import get_wsgi_application
 import os
 from pathlib import Path
