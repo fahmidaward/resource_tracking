@@ -1,7 +1,6 @@
 from dbca_utils.utils import env
 import dj_database_url
 import os
-from dotenv import load_dotenv
 from pathlib import Path
 # Project paths
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
