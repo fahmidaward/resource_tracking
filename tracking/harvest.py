@@ -337,36 +337,24 @@ def harvest_tracking_fleetcare():
                             final3 = (fractions[1].rsplit('"', 2))
                             final4 = (final3[1])
                             print(final4)
-                            deviceid = final4.strip()
-                            try:
-                                device = Device.objects.get(deviceid=deviceid)
-                                if seen == device.seen:
-                                # Already harvested.
-                                    ignored += 1
-                                    continue
-                                    updated += 1
-                            except ObjectDoesNotExist:
-                                    device = Device(deviceid=deviceid)
-                                    created += 1
-
                      if(final2).strip() == 'vehicleRego':
 #                           print(final4)
                             final3 = (fractions[1].rsplit('"', 2))
                             final4 = (final3[1])
                             print(final4)
-                            device.registration = final4.strip()
+                     #       device.registration = final4.strip()
 
                      
                      if (final2.strip()) == 'vehicleSpeed':
                           final3 = (fractions[1].rsplit('"', 2))
                           final4 = (final3[1])
                           print(final4)
-                          device.velocity = float(final4.strip())
+                      #    device.velocity = float(final4.strip())
                      if (final2.strip()) == 'vehicleHeading':    
                           final3 = (fractions[1].rsplit('"', 2))
                           final4 = (final3[1])
                           print(final4)
-                          device.heading = (final4.strip())
+                       #   device.heading = (final4.strip())
                      if (final2.strip()) == 'coordinates':
                           final3 = (fractions[1].rsplit(',', 1))
                           final4 = (final3[0])
@@ -375,8 +363,8 @@ def harvest_tracking_fleetcare():
                           final7 = final6[0:8]
                           print(final5)
                           print(final7)
-                          device.point = "POINT ({} {})".format(final5, final7)
-                          device.save()
+                        #  device.point = "POINT ({} {})".format(final5, final7)
+                         # device.save()
                           # device.heading = (final4.strip())
 """
 
