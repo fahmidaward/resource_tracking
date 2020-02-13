@@ -26,7 +26,8 @@ class Command(BaseCommand):
 
         LOGGER.info('Harvesting Fleetcare feed')
         try:
-            print("Harvested from Fleetcare; created.".format(*harvest_tracking_fleetcare()))
+            harvest_tracking_fleetcare()
+            print("Harvested from Fleetcare; created.")
             #LOGGER.info("Updated {} of {} scanned DFES devices".format(updated, num_records))
         except Exception as e:
             LOGGER.error(e)

@@ -2,5 +2,5 @@
 from fastapi import FastAPI
 import dotenv
 
-load_dotenv()
+dotenv.read_dotenv()
 app = FastAPI()

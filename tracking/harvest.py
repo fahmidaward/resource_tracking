@@ -277,14 +277,13 @@ def save_tracplus():
     LOGGER.info("Updated {} of {} scanned TracPLUS devices".format(updated, len(latest)))
    
 def harvest_tracking_fleetcare():
-    #from dotenv import load_dotenv
-    #load_dotenv()
     from lazyapi import app
     import os
     from peewee import PostgresqlDatabase, Model, CharField, DateTimeField, TextField
     from collections import defaultdict
     db = PostgresqlDatabase(os.environ.get("FCAREDATABASE"),user=os.environ.get("FCAREUSER"), password=os.environ.get("FCAREPASSWORD"),host=os.environ.get("FCAREHOST"), port=os.environ.get("FCAREPORT"))
-
+    people = os.environ.get("FCAREDATABASE")
+    print(people)
     class LogEntry(Model):
         name = CharField()
         created = DateTimeField()
@@ -295,22 +294,98 @@ def harvest_tracking_fleetcare():
              (('name', 'created'), True),
         )
         database = db
-    h=0
+    
     db.connect()
     print('3')
+    h=0
+    ignored = 0
+    updated = 0
+    created = 0
+    harvested = 0
+
+   
+    db.bind([LogEntry])    
+    #passes = (LogEntry.select())
+    
+   
     for p in LogEntry.select():
         h=h+1
-        if h>350 and h<352:
-           # print(p.name, p.created, p.text)
-           # print(h)
-           # items = p.text
-           
-           # if item['format'] == 'dynamics':
+        if h>50 and h<54:
            items = p.text
            elements=(items.splitlines( ))
+     #      print(elements)
+           k=0
            for element in elements:
-               print(element)
+              # print(element)
 
+               k=k+1
+               if k>1:
+                 # fractions=(element.rsplit(':', 1))
+                  if(k != 28) and (k!=31) and (k!=32):
+                     print(element)
+                     print(k)
+
+                     fractions=(element.rsplit(':', 1))
+                     final1 = (fractions[0].rsplit('"', 2))
+                     final2 = (final1[1])
+
+#                  final3 = (fractions[1].rsplit('"'))
+#                  final4 = (final3[1])
+                     print(final2)
+                     if(final2).strip() == 'vehicleID':
+#                           print(final4)
+                            final3 = (fractions[1].rsplit('"', 2))
+                            final4 = (final3[1])
+                            print(final4)
+                            deviceid = final4.strip()
+                            try:
+                                device = Device.objects.get(deviceid=deviceid)
+                                if seen == device.seen:
+                                # Already harvested.
+                                    ignored += 1
+                                    continue
+                                    updated += 1
+                            except ObjectDoesNotExist:
+                                    device = Device(deviceid=deviceid)
+                                    created += 1
+
+                     if(final2).strip() == 'vehicleRego':
+#                           print(final4)
+                            final3 = (fractions[1].rsplit('"', 2))
+                            final4 = (final3[1])
+                            print(final4)
+                            device.registration = final4.strip()
+
+                     
+                     if (final2.strip()) == 'vehicleSpeed':
+                          final3 = (fractions[1].rsplit('"', 2))
+                          final4 = (final3[1])
+                          print(final4)
+                          device.velocity = float(final4.strip())
+                     if (final2.strip()) == 'vehicleHeading':    
+                          final3 = (fractions[1].rsplit('"', 2))
+                          final4 = (final3[1])
+                          print(final4)
+                          device.heading = (final4.strip())
+                     if (final2.strip()) == 'coordinates':
+                          final3 = (fractions[1].rsplit(',', 1))
+                          final4 = (final3[0])
+                          final5 = final4[2:10]
+                          final6 = final3[1]
+                          final7 = final6[0:8]
+                          print(final5)
+                          print(final7)
+                          device.point = "POINT ({} {})".format(final5, final7)
+                          device.save()
+                          # device.heading = (final4.strip())
+"""
+
+           try:
+                device = Device.objects.get(deviceid=deviceid)
+           except ObjectDoesNotExist:
+                device = Device(deviceid=deviceid)
+                created += 1
+"""
 
 def save_dfes_avl():
     LOGGER.info('Begin to harvest the data from dfes, out of order buffer is {} seconds'.format(settings.DFES_OUT_OF_ORDER_BUFFER))
@@ -452,7 +527,7 @@ def harvest_tracking_email(request=None):
     dimap = DeferredIMAP(
         host=settings.EMAIL_HOST, user=settings.EMAIL_USER, password=settings.EMAIL_PASSWORD)
     start = timezone.now()
-
+    """
     LOGGER.info('Harvesting IridiTRAK emails')
     emails = retrieve_emails(dimap, '(FROM "sbdservice@sbd.iridium.com" UNFLAGGED)')
     for message in emails:
@@ -476,14 +551,14 @@ def harvest_tracking_email(request=None):
     for message in emails:
         save_mp70(dimap, message)
     dimap.flush()
-
+    """ 
     LOGGER.info('Harvesting TracPlus emails')
     try:
         save_tracplus()
     except Exception as e:
         LOGGER.error(e)
 
-    #DFES feed handled by separate management command
+    # DFES feed handled by separate management command
 
     delta = timezone.now() - start
     html = "<html><body>Tracking point email harvest run at {} for {}</body></html>".format(start, delta)
