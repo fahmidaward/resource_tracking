@@ -276,15 +276,16 @@ def save_tracplus():
             updated += 1
     LOGGER.info("Updated {} of {} scanned TracPLUS devices".format(updated, len(latest)))
    
-def harvest_tracking_fleetcare():
+def save_fleetcare_db(): 
     from lazyapi import app
     import os
-    from peewee import PostgresqlDatabase, Model, CharField, DateTimeField, TextField
+    from peewee import PostgresqlDatabase, Model, CharField, DateTimeField, TextField, IdentityField
     from collections import defaultdict
     db = PostgresqlDatabase(os.environ.get("FCAREDATABASE"),user=os.environ.get("FCAREUSER"), password=os.environ.get("FCAREPASSWORD"),host=os.environ.get("FCAREHOST"), port=os.environ.get("FCAREPORT"))
     people = os.environ.get("FCAREDATABASE")
     print(people)
     class LogEntry(Model):
+        id = IdentityField()
         name = CharField()
         created = DateTimeField()
         text = TextField()
@@ -297,83 +298,68 @@ def harvest_tracking_fleetcare():
     
     db.connect()
     print('3')
-    h=0
     ignored = 0
     updated = 0
     created = 0
     harvested = 0
-
+  
    
     db.bind([LogEntry])    
-    #passes = (LogEntry.select())
-    
+    passes = LogEntry.select().limit(20000)
+
    
-    for p in LogEntry.select():
-        h=h+1
-        if h>50 and h<54:
-           items = p.text
-           elements=(items.splitlines( ))
-     #      print(elements)
-           k=0
-           for element in elements:
-              # print(element)
-
-               k=k+1
-               if k>1:
-                 # fractions=(element.rsplit(':', 1))
-                  if(k != 28) and (k!=31) and (k!=32):
-                     print(element)
-                     print(k)
-
-                     fractions=(element.rsplit(':', 1))
-                     final1 = (fractions[0].rsplit('"', 2))
-                     final2 = (final1[1])
-
-#                  final3 = (fractions[1].rsplit('"'))
-#                  final4 = (final3[1])
-                     print(final2)
-                     if(final2).strip() == 'vehicleID':
-#                           print(final4)
-                            final3 = (fractions[1].rsplit('"', 2))
-                            final4 = (final3[1])
-                            print(final4)
-                     if(final2).strip() == 'vehicleRego':
-#                           print(final4)
-                            final3 = (fractions[1].rsplit('"', 2))
-                            final4 = (final3[1])
-                            print(final4)
-                     #       device.registration = final4.strip()
-
-                     
-                     if (final2.strip()) == 'vehicleSpeed':
-                          final3 = (fractions[1].rsplit('"', 2))
-                          final4 = (final3[1])
-                          print(final4)
-                      #    device.velocity = float(final4.strip())
-                     if (final2.strip()) == 'vehicleHeading':    
-                          final3 = (fractions[1].rsplit('"', 2))
-                          final4 = (final3[1])
-                          print(final4)
-                       #   device.heading = (final4.strip())
-                     if (final2.strip()) == 'coordinates':
-                          final3 = (fractions[1].rsplit(',', 1))
-                          final4 = (final3[0])
-                          final5 = final4[2:10]
-                          final6 = final3[1]
-                          final7 = final6[0:8]
-                          print(final5)
-                          print(final7)
-                        #  device.point = "POINT ({} {})".format(final5, final7)
-                         # device.save()
-                          # device.heading = (final4.strip())
-"""
-
-           try:
-                device = Device.objects.get(deviceid=deviceid)
-           except ObjectDoesNotExist:
-                device = Device(deviceid=deviceid)
-                created += 1
-"""
+    for rows in passes :
+                rowid = rows.id 
+                jsondata = rows.text
+                try:
+                    data = json.loads(jsondata)
+                    assert data["format"] == "dynamics"
+                    deviceid = "fc_" + data["vehicleID"]
+                except Exception as e:
+                    LOGGER.error("{}: {}".format(rowid, e))
+                    continue
+                harvested += 1
+                seen = timezone.make_aware(datetime.strptime(data['timestamp'], '%d/%m/%Y %I:%M:%S %p'))
+              #  print(seen)
+                device, isnew = Device.objects.get_or_create(deviceid=deviceid)
+                #device, isnew = Device.objects.filter(deviceid=deviceid)
+                if isnew: # default to hiding and restricting to dbca new vehicles
+                    device.hidden = True
+                    device.internal_only = True
+                    created += 1
+                updated += 1
+                device.point = "POINT ({} {})".format(*data['GPS']['coordinates'])
+              #  if latest_seen is None:
+               #     device.seen = seen
+                #    latest_seen = seen
+              #  elif seen > latest_seen:
+               #     device.seen = seen
+                #    latest_seen = seen
+                if device.seen and seen > device.seen:
+                   device.seen = seen
+                   # print(device.seen)
+                device.registration = data["vehicleRego"]
+                device.velocity = int(float(data["readings"]["vehicleSpeed"]) * 1000)
+                device.altitude = int(float(data["readings"]["vehicleAltitude"]))
+                device.heading = int(float(data["readings"]["vehicleHeading"]))
+                device.source_device_type = 'fleetcare'
+                device.save()
+                lp, new = LoggedPoint.objects.get_or_create(device=device, seen=device.seen)
+                if not new: ignored += 1 # Already harvested, save anyway
+                lp.velocity = device.velocity
+                lp.heading = device.heading
+                lp.altitude = device.altitude
+                lp.point = device.point
+                lp.seen = device.seen
+                lp.source_device_type = device.source_device_type
+                lp.raw = jsondata
+                lp.save()
+                LogEntry.delete_by_id(rowid)
+                #query = LogEntry.delete().where(rows.id == rowid)
+                #query.execute()  # Returns the number of rows deleted.
+        #cursor.execute("delete from logentry where id = %s", [rowid])
+        
+    return harvested, created, updated, ignored
 
 def save_dfes_avl():
     LOGGER.info('Begin to harvest the data from dfes, out of order buffer is {} seconds'.format(settings.DFES_OUT_OF_ORDER_BUFFER))
